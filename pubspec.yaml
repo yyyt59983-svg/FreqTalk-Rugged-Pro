@@ -1,0 +1,47 @@
+name: freqtalk
+description: A production-ready walkie-talkie app with Online/Offline modes.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  
+  # Audio & Streaming
+  flutter_webrtc: ^0.9.48
+  record: ^5.1.0
+  audioplayers: ^5.2.1
+  flutter_sound: ^9.2.13
+  
+  # Networking
+  socket_io_client: ^2.0.3
+  flutter_p2p_connection: ^1.0.4  # For Android Wi-Fi Direct
+  bonsoir: ^2.0.1  # For zero-config local discovery
+  connectivity_plus: ^5.0.2
+  network_info_plus: ^4.0.2
+  
+  # Utilities
+  permission_handler: ^11.0.1
+  crypto: ^3.0.3
+  uuid: ^4.2.1
+  shared_preferences: ^2.2.2
+  google_fonts: ^6.1.0
+  animate_do: ^3.3.4
+  vibration: ^1.8.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Bold.ttf
