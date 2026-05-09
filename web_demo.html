@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FreqTalk Pro - Tactical Audio Radio</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        :root { --case: #1a1a1a; --screen: #00FF41; --accent: #FFD700; --red: #FF4136; }
+        body { background: #0a0a0a; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: 'Courier New', Courier, monospace; }
+        .radio-body { width: 320px; height: 600px; background: var(--case); border-radius: 15px; border: 6px solid #111; position: relative; display: flex; flex-direction: column; align-items: center; box-shadow: 0 50px 100px rgba(0,0,0,0.8); }
+        .knob-container { position: absolute; top: -45px; right: 50px; text-align: center; }
+        .knob { width: 40px; height: 40px; background: #333; border: 3px solid #000; border-radius: 50%; cursor: pointer; transition: 0.3s; }
+        .knob.on { transform: rotate(45deg); border-color: var(--screen); box-shadow: 0 0 10px var(--screen); }
+        .antenna { width: 25px; height: 150px; background: #111; position: absolute; top: -140px; left: 40px; }
+        .lcd { width: 85%; height: 110px; background: #041405; border: 8px solid #000; margin-top: 30px; border-radius: 4px; color: var(--screen); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0.2; }
+        .lcd.power-on { opacity: 1; box-shadow: inset 0 0 20px #000; }
+        .freq-display { font-size: 38px; font-weight: bold; }
+        .ptt-side { width: 50px; height: 160px; background: #222; position: absolute; left: -25px; top: 180px; border-radius: 10px 0 0 10px; border: 2px solid #000; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #444; }
+        .ptt-side:active { background: var(--red); left: -20px; color: white; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 40px; }
+        .key { width: 65px; height: 45px; background: #252525; border: 2px solid #000; color: #555; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .key.active { color: white; }
+        #led { width: 12px; height: 12px; border-radius: 50%; background: #222; position: absolute; top: 20px; right: 20px; }
+        .tx-led { background: red !important; box-shadow: 0 0 10px red; }
+        .rx-led { background: lime !important; box-shadow: 0 0 10px lime; }
+    </style>
+</head>
+<body>
+    <div class="radio-body">
+        <div class="antenna"></div>
+        <div class="knob-container"><div class="knob" id="knob" onclick="boot()"></div><div style="color:white;font-size:8px">VOL/PWR</div></div>
+        <div id="led"></div>
+        <div class="lcd" id="lcd"><div id="msg">POWER OFF</div><div class="freq-display" id="freq">000.000</div><div id="sub">OFFLINE</div></div>
+        <div class="keypad">
+            <div class="key active" onclick="tune('144.100')">F1</div><div class="key active" onclick="tune('145.500')">F2</div><div class="key active" onclick="tune('146.000')">F3</div>
+            <div class="key active">1</div><div class="key active">2</div><div class="key active">3</div>
+        </div>
+        <div class="ptt-side" id="ptt">P T T</div>
+    </div>
+    
+    <audio id="remoteAudio" autoplay></audio>
+
+    <script>
+        const socket = io('http://localhost:3000');
+        let isOn = false;
+        let localStream;
+        let pc;
+
+        const lcd = document.getElementById('lcd');
+        const msg = document.getElementById('msg');
+        const freq = document.getElementById('freq');
+        const led = document.getElementById('led');
+        const remoteAudio = document.getElementById('remoteAudio');
+
+        async function boot() {
+            if(isOn) return;
+            
+            if (!window.isSecureContext) {
+                alert("WebRTC requires a Secure Context (HTTPS or localhost).");
+            }
+
+            isOn = true;
+            document.getElementById('knob').classList.add('on');
+            lcd.classList.add('power-on');
+            msg.innerText = "BOOTING...";
+            
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { echoCancellation: true, noiseSuppression: true } 
+                });
+                msg.innerText = "STANDBY";
+                freq.innerText = "144.000";
+                document.getElementById('sub').innerText = "LINK READY";
+                socket.emit('join-frequency', '144.000');
+            } catch (e) {
+                console.error("Mic Error:", e);
+                msg.innerText = "MIC ERROR";
+                document.getElementById('sub').innerText = "ALLOW MIC IN BROWSER";
+                isOn = false;
+                document.getElementById('knob').classList.remove('on');
+                lcd.classList.remove('power-on');
+            }
+        }
+
+        function tune(f) { if(isOn) freq.innerText = f; socket.emit('join-frequency', f); }
+
+        socket.on('signal', async (data) => {
+            if (!isOn || !localStream) return;
+            if (!pc) createPC(data.from);
+            
+            if (data.signal.type === 'offer') {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                socket.emit('signal', { to: data.from, signal: answer });
+            } else if (data.signal.type === 'answer') {
+                await pc.setRemoteDescription(new RTCSessionDescription(data.signal));
+            } else if (data.signal.candidate) {
+                await pc.addIceCandidate(new RTCIceCandidate(data.signal));
+            }
+        });
+
+        function createPC(targetId) {
+            pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+            pc.onicecandidate = (e) => {
+                if (e.candidate) socket.emit('signal', { to: targetId, signal: e.candidate });
+            };
+            pc.ontrack = (e) => { remoteAudio.srcObject = e.streams[0]; };
+            localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+        }
+
+        const ptt = document.getElementById('ptt');
+        ptt.onmousedown = async () => {
+            if(!isOn || !localStream) return;
+            led.classList.add('tx-led');
+            msg.innerText = "TRANSMIT";
+            socket.emit('ptt-start', freq.innerText);
+            
+            pc = null; createPC(); 
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('signal', { frequency: freq.innerText, signal: offer });
+        };
+
+        ptt.onmouseup = () => {
+            if(!isOn) return;
+            led.classList.remove('tx-led');
+            msg.innerText = "STANDBY";
+            socket.emit('ptt-stop', freq.innerText);
+        };
+
+        socket.on('remote-ptt-start', () => { if(isOn) { led.classList.add('rx-led'); msg.innerText = "RECEIVING"; } });
+        socket.on('remote-ptt-stop', () => { if(isOn) { led.classList.remove('rx-led'); msg.innerText = "STANDBY"; } });
+    </script>
+</body>
+</html>
