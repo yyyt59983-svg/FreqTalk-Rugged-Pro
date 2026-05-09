@@ -22,9 +22,11 @@ jobs:
         run: |
           cp pubspec.yaml pubspec.yaml.bak
           flutter create --platforms=android .
-          mv pubspec.yaml.bak pubspec.yaml
+          mv -f pubspec.yaml.bak pubspec.yaml
       - name: Patch Android SDK
         run: |
+          # Patch namespace for the project if missing
+          echo "android.namespace=com.example.freqtalk" >> android/gradle.properties
           sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle || true
           sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle || true
       - run: flutter pub get
@@ -44,9 +46,9 @@ jobs:
           channel: 'stable'
       - name: Generate Boilerplate
         run: |
-          copy pubspec.yaml pubspec.yaml.bak
+          copy-item pubspec.yaml pubspec.yaml.bak -force
           flutter create --platforms=windows .
-          move pubspec.yaml.bak pubspec.yaml
+          move-item pubspec.yaml.bak pubspec.yaml -force
       - run: flutter pub get
       - run: flutter build windows --release
       - name: Upload EXE
