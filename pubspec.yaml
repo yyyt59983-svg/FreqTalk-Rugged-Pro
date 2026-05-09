@@ -18,7 +18,7 @@ dependencies:
   
   # Networking
   socket_io_client: ^2.0.3
-  flutter_p2p_connection: ^1.1.0  # Upgraded to fix namespace error
+  flutter_p2p_connection: ^3.0.3  # Using the version suggested by the build log
   bonsoir: ^2.0.1
   connectivity_plus: ^5.0.2
   network_info_plus: ^4.0.2
