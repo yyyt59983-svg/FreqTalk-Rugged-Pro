@@ -15,12 +15,12 @@ dependencies:
   flutter_webrtc: ^0.9.48
   record: ^5.1.0
   audioplayers: ^5.2.1
-  flutter_sound: ^9.2.13
+  # Removing flutter_sound to fix Windows build conflict
   
   # Networking
   socket_io_client: ^2.0.3
-  flutter_p2p_connection: ^1.0.4  # For Android Wi-Fi Direct
-  bonsoir: ^2.0.1  # For zero-config local discovery
+  flutter_p2p_connection: ^1.0.4
+  bonsoir: ^2.0.1
   connectivity_plus: ^5.0.2
   network_info_plus: ^4.0.2
   
@@ -32,6 +32,9 @@ dependencies:
   google_fonts: ^6.1.0
   animate_do: ^3.3.4
   vibration: ^1.8.4
+
+dependency_overrides:
+  permission_handler: 10.2.0
 
 dev_dependencies:
   flutter_test:

@@ -19,11 +19,14 @@ jobs:
         with:
           channel: 'stable'
       - name: Generate Boilerplate
-        run: flutter create --platforms=android .
+        run: |
+          cp pubspec.yaml pubspec.yaml.bak
+          flutter create --platforms=android .
+          mv pubspec.yaml.bak pubspec.yaml
       - name: Patch Android SDK
         run: |
-          sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle
-          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle
+          sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle || true
+          sed -i 's/compileSdkVersion .*/compileSdkVersion 34/g' android/app/build.gradle || true
       - run: flutter pub get
       - run: flutter build apk --release
       - name: Upload APK
@@ -40,7 +43,10 @@ jobs:
         with:
           channel: 'stable'
       - name: Generate Boilerplate
-        run: flutter create --platforms=windows .
+        run: |
+          copy pubspec.yaml pubspec.yaml.bak
+          flutter create --platforms=windows .
+          move pubspec.yaml.bak pubspec.yaml
       - run: flutter pub get
       - run: flutter build windows --release
       - name: Upload EXE
