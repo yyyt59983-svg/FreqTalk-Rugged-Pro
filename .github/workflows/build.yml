@@ -19,7 +19,7 @@ jobs:
         with:
           channel: 'stable'
       - name: Generate Boilerplate
-        run: flutter create --force --platforms=android .
+        run: flutter create --platforms=android .
       - name: Patch Android SDK
         run: |
           sed -i 's/minSdkVersion .*/minSdkVersion 21/g' android/app/build.gradle
@@ -40,7 +40,7 @@ jobs:
         with:
           channel: 'stable'
       - name: Generate Boilerplate
-        run: flutter create --force --platforms=windows .
+        run: flutter create --platforms=windows .
       - run: flutter pub get
       - run: flutter build windows --release
       - name: Upload EXE
